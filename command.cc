@@ -148,10 +148,9 @@ Command::execute()
     int defaulterr;
     int outfd;
     int errorfile;
-    int f_dpipe[5][2];
-
+    int f_dpipe[_numberOfSimpleCommands][2];
     for ( int i = 0; i < _numberOfSimpleCommands; i++ ){
-        pipe(f_dpipe[i]);
+
         if(i==0){
             defaultin = dup( 0 );
             defaultout = dup( 1 );
@@ -160,11 +159,19 @@ Command::execute()
 			}
         if(i<_numberOfSimpleCommands-1){
         if(strcmp(_simpleCommands[i+1]->_arguments[ 0 ],"grep")==0){
+                pipe(f_dpipe[i]);
                dup2(f_dpipe[i][1],1);
                close(f_dpipe[i][1]);
           }
          }
 
+        if(strcmp(_simpleCommands[i]->_arguments[ 0 ],"grep")==0){
+        dup2(f_dpipe[i-1][0],0);
+        close(f_dpipe[i-1][0]);
+        if(i==_numberOfSimpleCommands-1)
+        dup2(defaultout,1);
+        }
+        if(i==_numberOfSimpleCommands-1){
         if (_outFile!=0){
             outfd = creat(_outFile, 0666);
             dup2(outfd, 1);}
@@ -175,10 +182,7 @@ Command::execute()
             errorfile = creat(_errFile, 0666);
             dup2(errorfile,2);
         }
-        if(strcmp(_simpleCommands[i]->_arguments[ 0 ],"grep")==0){
-        dup2(f_dpipe[i-1][0],0);
-        close(f_dpipe[i-1][0]);
-        dup2(defaultout,1);}
+        }
         executer=fork();
         if (executer ==0 ){
             execvp(_simpleCommands[i]->_arguments[ 0 ],_simpleCommands[i]->_arguments);
