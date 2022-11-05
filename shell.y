@@ -49,7 +49,7 @@ command: simple_command
         ;
 
 simple_command:	
-	command_and_args complex_command_and_args  iomodifier_opt    background NEWLINE {
+	command_and_args complex_command_and_args  iomodifier_opt_list  background NEWLINE {
 		printf("   Yacc: Execute command\n");
 		Command::_currentCommand.execute();
 	}
@@ -104,10 +104,17 @@ command_word:
 	       Command::_currentSimpleCommand->insertArgument( $1 );
 	}
 	;
-
+iomodifier_opt_list:
+	iomodifier_opt_out
+	|
+	;
+iomodifier_opt_out:
+	iomodifier_opt_out iomodifier_opt
+	|
+	;
 iomodifier_opt:
 
-	 GREAT WORD {
+	GREAT WORD {
 		printf("   Yacc: insert output \"%s\"\n", $2);
 		Command::_currentCommand._outFile = $2;
 	}
@@ -119,7 +126,7 @@ iomodifier_opt:
 		printf("   Yacc: append output \"%s\"\n", $2);
 		Command::_currentCommand._appendfile = $2;
 	}
-	|ERROR WORD{
+	|ERROR WORD {
 		printf("   Yacc: insert error \"%s\"\n", $2);
 		Command::_currentCommand._errFile = $2;
 	}
