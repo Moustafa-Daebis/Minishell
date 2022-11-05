@@ -138,54 +138,48 @@ Command::execute()
 		prompt();
 		return;
 	}
+	
+	if(strcmp(_simpleCommands[0]->_arguments[ 0 ],"cd")==0){
+	if(_simpleCommands[0]->_arguments[ 1 ]){
+	   chdir(_simpleCommands[0]->_arguments[ 1 ]);
+	   clear();
+           prompt();
+	   }
+	   
+	   else {
+                              
+                      chdir("/home");  
+                      clear();
+                      prompt();   
+                            }
+                  }
 
 	// Print contents of Command data structure
 	print();
+
 	pid_t executer;
 	int status;
     int defaultin ;
     int defaultout;
     int defaulterr;
     int outfd;
-    int errorfile;
-    int f_dpipe[_numberOfSimpleCommands][2];
     for ( int i = 0; i < _numberOfSimpleCommands; i++ ){
-
         if(i==0){
             defaultin = dup( 0 );
             defaultout = dup( 1 );
             defaulterr = dup( 2 );
-
 			}
-        if(i<_numberOfSimpleCommands-1){
-        if(strcmp(_simpleCommands[i+1]->_arguments[ 0 ],"grep")==0){
-                pipe(f_dpipe[i]);
-               dup2(f_dpipe[i][1],1);
-               close(f_dpipe[i][1]);
-          }
-         }
-
-        if(strcmp(_simpleCommands[i]->_arguments[ 0 ],"grep")==0){
-        dup2(f_dpipe[i-1][0],0);
-        close(f_dpipe[i-1][0]);
-        if(i==_numberOfSimpleCommands-1)
-        dup2(defaultout,1);
-        }
-        if(i==_numberOfSimpleCommands-1){
+        executer=fork();
         if (_outFile!=0){
             outfd = creat(_outFile, 0666);
-            dup2(outfd, 1);}
+            dup2(outfd, 1);
+        }
         if (_inputFile!=0){
-            dup2(outfd,  0);
+                dup2(outfd, 0);
         }
-        if (_errFile!=0){
-            errorfile = creat(_errFile, 0666);
-            dup2(errorfile,2);
-        }
-        }
-        executer=fork();
         if (executer ==0 ){
             execvp(_simpleCommands[i]->_arguments[ 0 ],_simpleCommands[i]->_arguments);
+
         }
     }
     dup2(defaultin,0);
@@ -209,7 +203,20 @@ Command::execute()
 	prompt();}
 	// Print new prompt
 
+
 }
+void handle_sigint(int sig){
+  printf("you can't stop it\n");
+
+}
+void child_handler(int signum){
+	FILE*fp;
+	int pid;
+	pid=getpid();
+	fp=fopen("logfile.txt","a");
+	fprintf(fp,"child: %d is terminated\n" , pid);
+	fclose(fp);
+	}
 
 // Shell implementation
 
@@ -228,7 +235,10 @@ int yyparse(void);
 int
 main()
 {
+	
 	Command::_currentCommand.prompt();
+	signal(SIGINT, &handle_sigint);
+	signal(SIGCHLD, child_handler);
 	yyparse();
 	return 0;
 }

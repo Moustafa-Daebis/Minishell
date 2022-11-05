@@ -18,7 +18,8 @@
 %token  LESS
 %token  BACKGROUND
 %token GREATER
-%token ERROR
+%token EXIT
+
 %union	{
 		char   *string_val;
 	}
@@ -47,15 +48,23 @@ commands:
 
 command: simple_command
         ;
+        
 
 simple_command:	
-	command_and_args complex_command_and_args  iomodifier_opt_list  background NEWLINE {
+	exit_command command_and_args complex_command_and_args  iomodifier_opt iomodifier_opt  background NEWLINE {
 		printf("   Yacc: Execute command\n");
 		Command::_currentCommand.execute();
 	}
 	| NEWLINE 
 	| error NEWLINE { yyerrok; }
 	;
+exit_command:
+	EXIT {
+	printf("GOOD BYE!!\n");
+	return 0; 
+	 }
+	|
+ 	;
 
 
 complex_command_and_args:
@@ -104,16 +113,8 @@ command_word:
 	       Command::_currentSimpleCommand->insertArgument( $1 );
 	}
 	;
-iomodifier_opt_list:
-	iomodifier_opt_out
-	|
-	;
-iomodifier_opt_out:
-	iomodifier_opt_out iomodifier_opt
-	|
-	;
-iomodifier_opt:
 
+iomodifier_opt:
 	GREAT WORD {
 		printf("   Yacc: insert output \"%s\"\n", $2);
 		Command::_currentCommand._outFile = $2;
@@ -126,11 +127,7 @@ iomodifier_opt:
 		printf("   Yacc: append output \"%s\"\n", $2);
 		Command::_currentCommand._appendfile = $2;
 	}
-	|ERROR WORD {
-		printf("   Yacc: insert error \"%s\"\n", $2);
-		Command::_currentCommand._errFile = $2;
-	}
-	| 
+	|
 	;
 
 background:
