@@ -18,6 +18,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include "command.h"
+#include <time.h>
 
 SimpleCommand::SimpleCommand()
 {
@@ -57,6 +58,7 @@ Command::Command()
 	_inputFile = 0;
 	_errFile = 0;
 	_background = 0;
+	_appendfile = 0;
 }
 
 void
@@ -95,12 +97,15 @@ Command:: clear()
 	if ( _errFile ) {
 		free( _errFile );
 	}
-
+    if ( _appendfile ) {
+		free( _appendfile );
+	}
 	_numberOfSimpleCommands = 0;
 	_outFile = 0;
 	_inputFile = 0;
 	_errFile = 0;
 	_background = 0;
+	_appendfile = 0;
 }
 
 void
@@ -141,30 +146,76 @@ Command::execute()
 
 	// Print contents of Command data structure
 	print();
-
 	pid_t executer;
 	int status;
     int defaultin ;
     int defaultout;
     int defaulterr;
     int outfd;
+    int file;
+    int errorfile;
+    int in;
+    int f_dpipe[_numberOfSimpleCommands][2];
     for ( int i = 0; i < _numberOfSimpleCommands; i++ ){
-        if(i==0){
+
+
+        if(strcmp(_simpleCommands[0]->_arguments[ 0 ],"cd")==0)
+        {
+            if(_simpleCommands[0]->_arguments[ 1 ])
+                chdir(_simpleCommands[0]->_arguments[ 1 ]);
+
+            else {
+                chdir("/home");
+                 }
+        break;
+        }
+         if(i==0){
             defaultin = dup( 0 );
             defaultout = dup( 1 );
             defaulterr = dup( 2 );
+
 			}
-        executer=fork();
-        if (_outFile!=0){
+       if(i<_numberOfSimpleCommands-1){
+        if(strcmp(_simpleCommands[i+1]->_arguments[ 0 ],"grep")==0){
+                pipe(f_dpipe[i]);
+               dup2(f_dpipe[i][1],1);
+               close(f_dpipe[i][1]);
+          }
+         }
+
+        if(strcmp(_simpleCommands[i]->_arguments[ 0 ],"grep")==0){
+        dup2(f_dpipe[i-1][0],0);
+        close(f_dpipe[i-1][0]);
+        if(i==_numberOfSimpleCommands-1)
+        dup2(defaultout,1);
+        }
+
+        if(i==_numberOfSimpleCommands-1){
+        if(_appendfile!=0 ){
+            file=open(_appendfile,O_CREAT|O_APPEND|O_RDWR,00400|00200);
+            dup2(file,1);
+            close(file);
+        }
+         if (_outFile!=0){
             outfd = creat(_outFile, 0666);
             dup2(outfd, 1);
-        }
+            close(outfd);
+            }
         if (_inputFile!=0){
-                dup2(outfd, 0);
+            in=open(_inputFile,O_RDWR,00400|00200);
+            dup2(in,0);
+            close(in);
         }
+        if (_errFile!=0){
+            errorfile = creat(_errFile, 0666);
+            dup2(errorfile,2);
+            close(errorfile);
+        }
+
+        }
+        executer=fork();
         if (executer ==0 ){
             execvp(_simpleCommands[i]->_arguments[ 0 ],_simpleCommands[i]->_arguments);
-
         }
     }
     dup2(defaultin,0);
@@ -180,7 +231,6 @@ Command::execute()
         if (WIFEXITED(status))
         {
             clear();
-            // Print new prompt
             prompt();
         }
 	}
@@ -189,9 +239,19 @@ Command::execute()
 	// Print new prompt
 
 }
+void child_graveyard(int sick_child){
+	FILE*child_reporter;
+    time_t timer=time(NULL);
+	child_reporter=fopen("logfile.txt","a");
+	fprintf(child_reporter,"a child is terminated %s\n" , ctime(&timer));
+	fclose(child_reporter);
+	}
 
 // Shell implementation
+void Signal_handler(int sig){
+    printf(" you can't stop it\n");
 
+}
 void
 Command::prompt()
 {
@@ -208,6 +268,8 @@ int
 main()
 {
 	Command::_currentCommand.prompt();
+	signal(SIGINT, &Signal_handler);
+	signal(SIGCHLD, child_graveyard);
 	yyparse();
 	return 0;
 }
