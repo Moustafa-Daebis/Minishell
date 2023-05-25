@@ -20,12 +20,14 @@ Various commands can be executed.
 ## Getting Started
 
 ### Prerequisites 
-#Linux OS 
-#C++ editior
+Linux OS 
+
+C++ editior
 
 ### Installing
-#Install the repo content to a suitable location
-#Extract the file content 
+Install the repo content to a suitable location
+
+Extract the file content 
 
 ### Executing program
 Run the make file 
