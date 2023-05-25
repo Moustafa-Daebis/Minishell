@@ -12,7 +12,7 @@
 * [Acknowledgments](#acknowledgments)
 
 ## Description
-This program simulates a linux shell. 
+This program is a linux minishell that peforms lexcial and grammatical analysis of commands before executing the commands accordingly. 
 
 ## Features
 Various commands can be executed.
